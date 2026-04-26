@@ -1,0 +1,74 @@
+#leetcode-coach-panel {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC", sans-serif;
+}
+
+#leetcode-coach-panel .lcc-toggle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #5b8def;
+  color: white;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(91, 141, 239, 0.4);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#leetcode-coach-panel .lcc-toggle:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 18px rgba(91, 141, 239, 0.55);
+}
+
+#leetcode-coach-panel .lcc-content {
+  position: absolute;
+  right: 0;
+  bottom: 64px;
+  width: 480px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  border-radius: 12px;
+  animation: lcc-pop-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#leetcode-coach-panel .lcc-content[hidden] { display: none; }
+
+@keyframes lcc-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.lcc-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background: #3fb950;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  z-index: 9999999;
+  font-family: -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(63, 185, 80, 0.3);
+  animation: lcc-toast-slide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lcc-toast-slide {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}

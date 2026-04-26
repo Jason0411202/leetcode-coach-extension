@@ -14,10 +14,12 @@ Duolingo 風格的 LeetCode 學習與複習助手。
 ### 方式 A:從 GitHub Releases 下載已封裝版本(最簡單)
 
 1. 到 [Releases 頁面](../../releases) 下載最新的 `leetcode-coach-extension-v*.zip`
-2. 解壓縮,得到 `leetcode-coach-extension/` 資料夾
+2. **右鍵 → 解壓縮全部**(Windows)或**雙擊**(macOS)。會自動建立一個跟檔名同名的資料夾,例如 `leetcode-coach-extension-v0.1.1/`。打開那個資料夾,你應該**直接**看到 `manifest.json`、`icons/`、`src/`(而不是再進一層才看到)
 3. Chrome 開啟 `chrome://extensions/`
 4. 右上角開啟「**開發人員模式**」
-5. 點「**載入未封裝項目**」,選擇剛解壓的 `leetcode-coach-extension/` 資料夾
+5. 點「**載入未封裝項目**」,選擇步驟 2 解壓出來的那個資料夾(直接包含 `manifest.json` 的那一層)
+
+> ⚠️ **如果你看到「資訊清單檔案遺失或無法讀取」:** 表示你選錯資料夾了。再進一層看看 — 有些解壓縮工具(例如 7-Zip 預設行為)會多包一層 wrapper 資料夾。要選的是**直接包含 `manifest.json` 那一層**,而不是它的 parent。
 
 ### 方式 B:從原始碼建置
 

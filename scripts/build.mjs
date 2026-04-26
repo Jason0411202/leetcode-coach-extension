@@ -249,10 +249,16 @@ function zipFiles(entries) {
 
 // Sort entries deterministically for reproducible builds
 allFiles.sort((a, b) => a.rel.localeCompare(b.rel));
-// Make every file's entry path nested under PKG_NAME/ so when users unzip
-// they get a directory ready to load via "Load unpacked".
+// Files live at the zip root (NOT nested under a folder).
+// Reason: Windows Explorer and macOS Finder auto-create a wrapper folder
+// named after the zip when extracting (e.g. "leetcode-coach-extension-v0.1.0/"),
+// so the user ends up with that folder containing manifest.json directly —
+// ready to load via Chrome's "Load unpacked".
+// If we also nested inside the zip, users would get
+//   Downloads/leetcode-coach-extension-v0.1.0/leetcode-coach-extension/manifest.json
+// and Chrome (pointed at the outer folder) would say "manifest file is missing".
 const zipEntries = allFiles.map(f => ({
-  rel: `${PKG_NAME}/${f.rel}`,
+  rel: f.rel,
   data: f.data,
   mtime: f.mtime
 }));

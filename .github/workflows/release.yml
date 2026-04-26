@@ -81,25 +81,35 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p _smoke
-          unzip -q "dist/${{ steps.version.outputs.zip_name }}" -d _smoke
-          test -f _smoke/leetcode-coach-extension/manifest.json
-          test -f _smoke/leetcode-coach-extension/icons/icon128.png
-          test -f _smoke/leetcode-coach-extension/src/background.js
-          test -f _smoke/leetcode-coach-extension/src/components/review-card.js
-          test -f _smoke/leetcode-coach-extension/src/content/injector.js
-          test -f _smoke/leetcode-coach-extension/src/dashboard/dashboard.html
+          # Simulate what Windows Explorer / macOS Finder do: extract into
+          # a folder named after the zip (without the .zip extension).
+          ZIP="dist/${{ steps.version.outputs.zip_name }}"
+          EXTRACT_DIR="_smoke/$(basename "${{ steps.version.outputs.zip_name }}" .zip)"
+          mkdir -p "$EXTRACT_DIR"
+          unzip -q "$ZIP" -d "$EXTRACT_DIR"
+
+          # manifest.json must sit at the root of the extracted folder
+          # (so Chrome's "Load unpacked" → that folder → works first try)
+          test -f "$EXTRACT_DIR/manifest.json"
+          test -f "$EXTRACT_DIR/icons/icon128.png"
+          test -f "$EXTRACT_DIR/src/background.js"
+          test -f "$EXTRACT_DIR/src/components/review-card.js"
+          test -f "$EXTRACT_DIR/src/content/injector.js"
+          test -f "$EXTRACT_DIR/src/dashboard/dashboard.html"
+
           # Make sure none of the dev-only directories leaked in
-          if [ -d _smoke/leetcode-coach-extension/test ]; then
-            echo "::error::test/ directory was packaged"; exit 1
+          for d in test scripts docs .github node_modules; do
+            if [ -d "$EXTRACT_DIR/$d" ]; then
+              echo "::error::$d/ directory was packaged"; exit 1
+            fi
+          done
+
+          # Confirm no double-nesting (the bug v0.1.0 had)
+          if [ -d "$EXTRACT_DIR/leetcode-coach-extension" ]; then
+            echo "::error::Zip is double-nested — files should be at zip root"; exit 1
           fi
-          if [ -d _smoke/leetcode-coach-extension/scripts ]; then
-            echo "::error::scripts/ directory was packaged"; exit 1
-          fi
-          if [ -d _smoke/leetcode-coach-extension/.github ]; then
-            echo "::error::.github/ directory was packaged"; exit 1
-          fi
-          echo "Smoke test passed."
+
+          echo "Smoke test passed: manifest.json sits at $EXTRACT_DIR/manifest.json"
 
       - name: Upload zip artifact
         uses: actions/upload-artifact@v4
@@ -162,23 +172,21 @@ jobs:
           cat > /tmp/notes.md <<'EOF'
           ## LeetCode Coach v${{ needs.build.outputs.version }}
 
-          **下載並安裝:**
+          ### 下載並安裝(三步)
 
-          1. 下載 `${{ needs.build.outputs.zip_name }}`
-          2. 解壓縮到任意資料夾,會得到 `leetcode-coach-extension/` 目錄
-          3. 打開 Chrome → `chrome://extensions/`
-          4. 右上角開啟「開發人員模式」
-          5. 點「載入未封裝項目」,選擇 `leetcode-coach-extension/` 資料夾
-          6. 完成,extension 已安裝
+          1. 下載 [`${{ needs.build.outputs.zip_name }}`](../../releases/download/${{ steps.tag.outputs.tag }}/${{ needs.build.outputs.zip_name }})
+          2. **右鍵 → 解壓縮**(Windows / macOS 的內建解壓縮工具會自動建立一個與檔名同名的資料夾,例如 `leetcode-coach-extension-v${{ needs.build.outputs.version }}/`,裡面直接是 `manifest.json`)
+          3. 打開 Chrome → `chrome://extensions/` → 右上角開啟「**開發人員模式**」→ 點「**載入未封裝項目**」→ **選擇剛剛解壓縮出來的那個資料夾**
 
-          **驗證:**
+          ✅ 完成。Chrome 工具列會出現 📘 圖示,LeetCode 題目頁面右下角會出現浮動按鈕。
+
+          ### 驗證
 
           - SHA-256: `${{ needs.build.outputs.zip_sha256 }}`
 
-          **使用:**
+          ### 疑難排解
 
-          - 在 [leetcode.com](https://leetcode.com) 任一題目頁面,右下角會出現 📘 浮動按鈕
-          - 點擴充功能列的圖示開啟 dashboard
+          **「資訊清單檔案遺失或無法讀取」**:你選錯資料夾了。確認你選的資料夾**直接**包含 `manifest.json`(而不是再進一層才看到)。如果用 7-Zip 之類的工具解壓縮,可能會多包一層 — 進去再選一次。
           EOF
           echo "path=/tmp/notes.md" >> "$GITHUB_OUTPUT"
 
