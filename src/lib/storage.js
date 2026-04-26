@@ -8,8 +8,8 @@ export const DEFAULT_SETTINGS = {
   schema_version: 1,
   auto_score_enabled: true,
   daily_review_cap: 20,
-  content_repo_url: 'https://raw.githubusercontent.com/USER/leetcode-coach-content/main',
-  github_repo_for_issues: 'USER/leetcode-coach-content'
+  content_repo_url: 'https://raw.githubusercontent.com/Jason0411202/leetcode-coach-content/main',
+  github_repo_for_issues: 'Jason0411202/leetcode-coach-content'
 };
 
 function localApi() {

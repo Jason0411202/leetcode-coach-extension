@@ -53,7 +53,7 @@ npm run build    # 產生 dist/leetcode-coach-extension/
 
 ## 內容來源
 
-預設讀取 `https://raw.githubusercontent.com/USER/leetcode-coach-content/main`。內容由 [leetcode-coach-content](https://github.com/USER/leetcode-coach-content) repo 提供,可在 ⚙️ 設定中改成你 fork 的私人題庫。
+預設讀取 `https://raw.githubusercontent.com/Jason0411202/leetcode-coach-content/main`。內容由 [leetcode-coach-content](https://github.com/Jason0411202/leetcode-coach-content) repo 提供,可在 ⚙️ 設定中改成你 fork 的私人題庫。
 
 ## 結構
 

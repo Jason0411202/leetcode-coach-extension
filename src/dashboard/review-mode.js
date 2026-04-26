@@ -85,7 +85,7 @@ function openCurrentInLeetCode() {
 }
 
 function onReportIssue(e) {
-  const repo = settings.github_repo_for_issues || 'USER/leetcode-coach-content';
+  const repo = settings.github_repo_for_issues || 'Jason0411202/leetcode-coach-content';
   const slug = e.detail.slug;
   const title = encodeURIComponent(`[Content] ${slug}: ${e.detail.reason}`);
   const body = encodeURIComponent(

@@ -144,19 +144,19 @@
     try {
       const res = await chrome.runtime.sendMessage({ type: 'get-settings' });
       return res || {
-        content_repo_url: 'https://raw.githubusercontent.com/USER/leetcode-coach-content/main',
-        github_repo_for_issues: 'USER/leetcode-coach-content'
+        content_repo_url: 'https://raw.githubusercontent.com/Jason0411202/leetcode-coach-content/main',
+        github_repo_for_issues: 'Jason0411202/leetcode-coach-content'
       };
     } catch (e) {
       return {
-        content_repo_url: 'https://raw.githubusercontent.com/USER/leetcode-coach-content/main',
-        github_repo_for_issues: 'USER/leetcode-coach-content'
+        content_repo_url: 'https://raw.githubusercontent.com/Jason0411202/leetcode-coach-content/main',
+        github_repo_for_issues: 'Jason0411202/leetcode-coach-content'
       };
     }
   }
 
   function openReportIssue(slug, reason) {
-    const repo = settings.github_repo_for_issues || 'USER/leetcode-coach-content';
+    const repo = settings.github_repo_for_issues || 'Jason0411202/leetcode-coach-content';
     const title = encodeURIComponent(`[Content] ${slug}: ${reason}`);
     const body = encodeURIComponent(
       `**Slug:** ${slug}\n**Reason:** ${reason}\n\n<!-- 描述問題在哪一段、有什麼錯誤 -->\n`
