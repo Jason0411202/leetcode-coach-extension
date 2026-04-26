@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>review-card 測試</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f6f8fa;
+      color: #1f2328;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0d1117; color: #e6edf3; }
+    }
+    h1 { font-size: 18px; }
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .controls button, .controls input, .controls select {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #d0d7de;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .controls button, .controls input, .controls select {
+        background: #161b22;
+        border-color: #30363d;
+        color: #e6edf3;
+      }
+    }
+    pre {
+      background: #161b22;
+      color: #e6edf3;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+      max-height: 200px;
+    }
+    .log-area {
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📘 review-card 元件測試</h1>
+
+  <div class="controls">
+    <select id="slug-select">
+      <option value="two-sum">two-sum</option>
+      <option value="valid-parentheses">valid-parentheses</option>
+      <option value="missing-problem">missing-problem (測試缺漏)</option>
+    </select>
+    <select id="context-select">
+      <option value="leetcode">context=leetcode</option>
+      <option value="review-mode">context=review-mode</option>
+    </select>
+    <button id="reload-btn">重新載入卡片</button>
+    <input id="content-url" value="../../leetcode-coach-content" style="flex:1;min-width:200px;">
+  </div>
+
+  <div id="card-slot"></div>
+
+  <div class="log-area">
+    <h3>事件記錄</h3>
+    <pre id="event-log">(尚無事件)</pre>
+  </div>
+
+  <script type="module">
+    import '../src/components/review-card.js';
+
+    const slot = document.getElementById('card-slot');
+    const logEl = document.getElementById('event-log');
+    const slugSel = document.getElementById('slug-select');
+    const ctxSel = document.getElementById('context-select');
+    const urlInput = document.getElementById('content-url');
+    const reloadBtn = document.getElementById('reload-btn');
+    const events = [];
+
+    function log(name, detail) {
+      events.unshift({ time: new Date().toISOString(), name, detail });
+      logEl.textContent = JSON.stringify(events.slice(0, 10), null, 2);
+    }
+
+    function mount() {
+      slot.innerHTML = '';
+      const card = document.createElement('review-card');
+      card.setAttribute('problem-slug', slugSel.value);
+      card.setAttribute('context', ctxSel.value);
+      card.setAttribute('content-url', urlInput.value);
+      slot.appendChild(card);
+    }
+
+    slot.addEventListener('card-submitted', e => log('card-submitted', e.detail));
+    slot.addEventListener('card-skipped', e => log('card-skipped', e.detail));
+    slot.addEventListener('card-closed', e => log('card-closed', e.detail));
+    slot.addEventListener('report-issue', e => log('report-issue', e.detail));
+
+    reloadBtn.addEventListener('click', mount);
+    slugSel.addEventListener('change', mount);
+    ctxSel.addEventListener('change', mount);
+
+    mount();
+  </script>
+</body>
+</html>

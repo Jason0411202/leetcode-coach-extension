@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "LeetCode Coach",
+  "version": "0.1.0",
+  "description": "在 LeetCode 上學習與複習,搭配五階評分與間隔複習系統",
+  "default_locale": "zh_TW",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "https://raw.githubusercontent.com/*"
+  ],
+  "action": {
+    "default_title": "LeetCode Coach",
+    "default_popup": "src/dashboard/dashboard.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["src/content/injector.js"],
+      "css": ["src/content/injector.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/components/*", "src/lib/*"],
+      "matches": ["https://leetcode.com/*"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

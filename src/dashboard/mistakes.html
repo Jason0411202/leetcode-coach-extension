@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>錯題本 — LeetCode Coach</title>
+  <link rel="stylesheet" href="list-shared.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <h1>⚠️ 錯題本</h1>
+      <a class="back-link" id="back-link">← 回 dashboard</a>
+    </header>
+
+    <p style="color: var(--lc-muted); font-size: 13px; margin-bottom: 16px;">
+      最近兩次評分都 ≤ 2 的題目會被標為錯題,優先進入複習佇列。
+    </p>
+
+    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+      <button class="btn" id="review-mistakes" style="background: var(--lc-primary); color: white; border-color: var(--lc-primary); padding: 10px 20px; font-weight: 700;">▶ 複習所有錯題</button>
+      <span id="count" style="align-self: center; color: var(--lc-muted); font-size: 13px;"></span>
+    </div>
+
+    <table class="problem-table" id="table">
+      <thead>
+        <tr>
+          <th>Slug</th>
+          <th>Patterns</th>
+          <th>最近兩次評分</th>
+          <th>下次複習</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+
+    <div class="empty" id="empty" hidden>
+      <div class="art">🎉</div>
+      <p>沒有錯題,做得好!</p>
+    </div>
+  </div>
+
+  <script type="module" src="mistakes.js"></script>
+</body>
+</html>
