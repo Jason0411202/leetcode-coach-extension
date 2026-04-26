@@ -28,7 +28,11 @@ const TEMPLATE_STYLE = `
     --lc-border: #d0d7de;
     --lc-muted: #6e7781;
 
-    display: block;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* When parent has a definite height (e.g. .lcc-content in injection),
+       the card fills it. Otherwise the card sizes to its content. */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC", sans-serif;
     background: var(--lc-bg);
     color: var(--lc-text);
@@ -36,6 +40,18 @@ const TEMPLATE_STYLE = `
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     overflow: hidden;
+  }
+
+  .root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* Sections that should keep their natural size and never compress */
+  .header, .stages, .hint-nav, .rating, .actions, .footer-meta {
+    flex: 0 0 auto;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -151,10 +167,13 @@ const TEMPLATE_STYLE = `
   }
 
   .content-area {
-    padding: 14px 16px;
-    min-height: 80px;
-    max-height: 50vh;
+    /* The ONLY flexible section. It absorbs height changes via internal
+       scrolling, so the rest of the card never moves. */
+    flex: 1 1 auto;
+    min-height: 200px;
+    max-height: 60vh;
     overflow-y: auto;
+    padding: 14px 16px;
     line-height: 1.55;
     font-size: 13px;
   }
@@ -164,7 +183,6 @@ const TEMPLATE_STYLE = `
     justify-content: center;
     color: var(--lc-muted);
     font-size: 12px;
-    min-height: 60px;
   }
 
   .hint-nav {
@@ -331,9 +349,12 @@ class ReviewCard extends HTMLElement {
 
   async connectedCallback() {
     this._renderShell();
+    // Attach the delegated click listener on the shadow root BEFORE
+    // anything else. It handles all clicks regardless of which subtree
+    // is currently rendered (loading state, missing state, normal).
+    this._attachListeners();
     await this._loadContent();
     this._renderBody();
-    this._attachListeners();
   }
 
   async _loadContent() {
@@ -363,10 +384,6 @@ class ReviewCard extends HTMLElement {
     const root = this.shadowRoot.querySelector('.root');
     if (!this._state.problem) {
       root.innerHTML = this._renderMissing();
-      const reportBtn = root.querySelector('[data-action="report"]');
-      if (reportBtn) reportBtn.addEventListener('click', () => this._reportIssue('content-missing'));
-      const closeBtn = root.querySelector('[data-action="close"]');
-      if (closeBtn) closeBtn.addEventListener('click', () => this._close());
       return;
     }
     const p = this._state.problem;
@@ -457,51 +474,66 @@ class ReviewCard extends HTMLElement {
   }
 
   _attachListeners() {
-    if (!this._state.problem) return;
-    const root = this.shadowRoot.querySelector('.root');
+    // Single delegated click handler on the shadow root. This is robust
+    // against re-rendering (we never re-attach per-button listeners) and
+    // immune to DOM mutations inside .root. Attached exactly once in
+    // connectedCallback regardless of whether content loaded successfully —
+    // the missing-state UI also needs the [data-action="close"] / "report"
+    // handlers to work.
+    if (this._listenersAttached) return;
+    this._listenersAttached = true;
+    this.shadowRoot.addEventListener('click', this._onShadowClick.bind(this));
+  }
 
-    root.querySelectorAll('[data-stage]').forEach(btn => {
-      btn.addEventListener('click', () => this._onStageClick(btn.dataset.stage));
-    });
-    root.querySelectorAll('[data-score]').forEach(btn => {
-      btn.addEventListener('click', () => this._selectScore(parseInt(btn.dataset.score, 10)));
-    });
-    root.querySelectorAll('[data-hint-nav]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const dir = btn.dataset.hintNav;
-        const total = (this._state.problem.hints_html || []).length;
-        if (total === 0) return;
-        const cur = this._state.currentHintIndex;
-        const next = dir === 'prev' ? cur - 1 : cur + 1;
-        this._goToHint(next);
-      });
-    });
+  _onShadowClick(event) {
+    const t = event.target;
 
-    const patternToggle = root.querySelector('[data-pattern-toggle]');
-    if (patternToggle) {
-      patternToggle.addEventListener('click', () => {
-        const badges = root.querySelector('[data-pattern-badges]');
-        const label = root.querySelector('[data-pattern-toggle-label]');
-        const willShow = badges.hasAttribute('hidden');
-        if (willShow) {
-          badges.removeAttribute('hidden');
-          label.textContent = '🏷️ 隱藏';
-        } else {
-          badges.setAttribute('hidden', '');
-          label.textContent = '🏷️ 顯示 pattern';
-        }
-      });
+    const stage = t.closest('[data-stage]');
+    if (stage) return this._onStageClick(stage.dataset.stage);
+
+    const hintNav = t.closest('[data-hint-nav]');
+    if (hintNav) {
+      const total = (this._state.problem?.hints_html || []).length;
+      if (total === 0) return;
+      const dir = hintNav.dataset.hintNav;
+      const next = dir === 'prev'
+        ? this._state.currentHintIndex - 1
+        : this._state.currentHintIndex + 1;
+      return this._goToHint(next);
     }
 
-    root.querySelector('[data-action="submit"]').addEventListener('click', () => this._submit());
-    root.querySelector('[data-action="skip"]').addEventListener('click', () => this._skip());
-    root.querySelector('[data-action="close"]').addEventListener('click', () => this._close());
-    const openLc = root.querySelector('[data-action="open-leetcode"]');
-    if (openLc) openLc.addEventListener('click', () => this._openLeetCode());
-    const openReview = root.querySelector('[data-action="open-review-mode"]');
-    if (openReview) openReview.addEventListener('click', () => this._openReviewMode());
-    const report = root.querySelector('[data-action="report"]');
-    if (report) report.addEventListener('click', () => this._reportIssue('user-flag'));
+    const score = t.closest('[data-score]');
+    if (score) return this._selectScore(parseInt(score.dataset.score, 10));
+
+    if (t.closest('[data-pattern-toggle]')) return this._togglePatterns();
+
+    const action = t.closest('[data-action]');
+    if (!action) return;
+    switch (action.dataset.action) {
+      case 'submit': return this._submit();
+      case 'skip': return this._skip();
+      case 'close': return this._close();
+      case 'open-leetcode': return this._openLeetCode();
+      case 'open-review-mode': return this._openReviewMode();
+      case 'report': return this._reportIssue(
+        this._state.problem ? 'user-flag' : 'content-missing'
+      );
+    }
+  }
+
+  _togglePatterns() {
+    const root = this.shadowRoot.querySelector('.root');
+    if (!root) return;
+    const badges = root.querySelector('[data-pattern-badges]');
+    const label = root.querySelector('[data-pattern-toggle-label]');
+    if (!badges || !label) return;
+    if (badges.hasAttribute('hidden')) {
+      badges.removeAttribute('hidden');
+      label.textContent = '🏷️ 隱藏';
+    } else {
+      badges.setAttribute('hidden', '');
+      label.textContent = '🏷️ 顯示 pattern';
+    }
   }
 
   _onStageClick(stage) {

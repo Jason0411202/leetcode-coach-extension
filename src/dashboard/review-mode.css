@@ -82,11 +82,16 @@ html, body {
 
 #card-slot {
   margin-bottom: 24px;
+  /* Reserve a stable height so swapping cards / changing content
+     doesn't shift the page layout */
+  min-height: min(640px, calc(100vh - 200px));
+  display: flex;
 }
 
 #card-slot review-card {
   width: 100%;
   max-width: 100%;
+  flex: 1 1 auto;
 }
 
 .rm-actions {

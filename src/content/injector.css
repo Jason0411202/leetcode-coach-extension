@@ -28,18 +28,29 @@
 }
 
 #leetcode-coach-panel .lcc-content {
-  position: absolute;
-  right: 0;
-  bottom: 64px;
+  /* Fixed dimensions so the card never resizes when content changes —
+     the inner content-area scrolls internally instead of pushing the
+     header/buttons up and down. */
+  position: fixed;
+  right: 20px;
+  bottom: 90px;
   width: 480px;
   max-width: calc(100vw - 40px);
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
+  height: min(640px, calc(100vh - 120px));
+  display: flex;
+  flex-direction: column;
   border-radius: 12px;
   animation: lcc-pop-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 #leetcode-coach-panel .lcc-content[hidden] { display: none; }
+
+#leetcode-coach-panel .lcc-content > review-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: block;
+  height: 100%;
+}
 
 @keyframes lcc-pop-in {
   from {

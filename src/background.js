@@ -78,6 +78,18 @@ async function handleMessage(msg) {
     case 'update-badge':
       await updateBadge();
       return { ok: true };
+    case 'open-extension-tab': {
+      // Open an extension page in a new tab. Called from the content
+      // script which isn't allowed to use window.open() with a
+      // chrome-extension:// URL on most pages.
+      const safePath = String(msg.path || '').replace(/^\/+/, '');
+      if (!safePath || !/^src\/dashboard\/[a-z0-9_-]+\.html$/i.test(safePath)) {
+        throw new Error(`Refused to open path: ${safePath}`);
+      }
+      const url = chrome.runtime.getURL(safePath);
+      await chrome.tabs.create({ url });
+      return { ok: true };
+    }
     default:
       throw new Error(`Unknown message type: ${msg?.type}`);
   }
