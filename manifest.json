@@ -3,7 +3,6 @@
   "name": "LeetCode Coach",
   "version": "0.1.1",
   "description": "在 LeetCode 上學習與複習,搭配五階評分與間隔複習系統",
-  "default_locale": "zh_TW",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
     "https://leetcode.com/*",
