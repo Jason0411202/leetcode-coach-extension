@@ -196,6 +196,9 @@ const TEMPLATE_STYLE = `
     font-size: 12px;
     color: var(--lc-muted);
   }
+  /* The [hidden] attribute alone is overridden by .hint-nav display:flex
+     above, so we need explicit precedence to actually hide it. */
+  .hint-nav[hidden] { display: none; }
   .hint-nav button {
     background: none;
     border: 1px solid var(--lc-border);
@@ -451,7 +454,7 @@ class ReviewCard extends HTMLElement {
 
       <div class="footer-meta">
         <a data-action="open-leetcode">↗ 在 LeetCode 開啟</a>
-        ${ctx === 'leetcode' ? '<a data-action="open-review-mode">📚 開啟複習模式</a>' : ''}
+        ${ctx === 'leetcode' ? '<a data-action="open-dashboard">📊 LeetCode Coach 主頁</a>' : ''}
         <a data-action="report">⚠️ 內容有問題?</a>
       </div>
     `;
@@ -514,7 +517,7 @@ class ReviewCard extends HTMLElement {
       case 'skip': return this._skip();
       case 'close': return this._close();
       case 'open-leetcode': return this._openLeetCode();
-      case 'open-review-mode': return this._openReviewMode();
+      case 'open-dashboard': return this._openDashboard();
       case 'report': return this._reportIssue(
         this._state.problem ? 'user-flag' : 'content-missing'
       );
@@ -702,10 +705,9 @@ class ReviewCard extends HTMLElement {
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 
-  _openReviewMode() {
-    const slug = this.getAttribute('problem-slug');
-    this.dispatchEvent(new CustomEvent('open-review-mode', {
-      detail: { slug },
+  _openDashboard() {
+    this.dispatchEvent(new CustomEvent('open-dashboard', {
+      detail: { slug: this.getAttribute('problem-slug') },
       bubbles: true,
       composed: true
     }));

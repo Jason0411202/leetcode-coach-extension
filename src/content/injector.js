@@ -132,21 +132,20 @@
       openReportIssue(e.detail.slug, e.detail.reason);
     });
 
-    panelEl.addEventListener('open-review-mode', async () => {
+    panelEl.addEventListener('open-dashboard', async () => {
       // Route through the service worker because content scripts running on
       // leetcode.com aren't allowed to navigate to chrome-extension:// URLs
       // — Arc, Brave, Edge strict mode and some Chrome adblockers block
       // window.open(chrome-extension://...) with ERR_BLOCKED_BY_CLIENT.
-      // chrome.tabs.create() is the canonical MV3 way and goes through the
-      // browser's tab API directly, so no client-side block intercepts it.
+      // chrome.tabs.create() is the canonical MV3 way.
       try {
         await chrome.runtime.sendMessage({
           type: 'open-extension-tab',
-          path: 'src/dashboard/review-mode.html'
+          path: 'src/dashboard/dashboard.html'
         });
       } catch (e) {
-        console.error('[lcc] failed to open review mode', e);
-        showToast('開啟複習模式失敗,請開啟 extension 圖示');
+        console.error('[lcc] failed to open dashboard', e);
+        showToast('開啟 dashboard 失敗,請點工具列的 extension 圖示');
       }
     });
   }
