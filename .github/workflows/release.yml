@@ -85,8 +85,13 @@ jobs:
           # a folder named after the zip (without the .zip extension).
           ZIP="dist/${{ steps.version.outputs.zip_name }}"
           EXTRACT_DIR="_smoke/$(basename "${{ steps.version.outputs.zip_name }}" .zip)"
+          # Be defensive: blow away any pre-existing _smoke/ from the
+          # checkout (in case it leaked into the repo) so unzip won't
+          # prompt for overwrite confirmation on a non-interactive shell.
+          rm -rf _smoke
           mkdir -p "$EXTRACT_DIR"
-          unzip -q "$ZIP" -d "$EXTRACT_DIR"
+          # -o = overwrite without prompting; </dev/null guards stdin.
+          unzip -oq "$ZIP" -d "$EXTRACT_DIR" </dev/null
 
           # manifest.json must sit at the root of the extracted folder
           # (so Chrome's "Load unpacked" → that folder → works first try)
