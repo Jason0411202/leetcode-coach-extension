@@ -683,8 +683,13 @@ class ReviewCard extends HTMLElement {
       stage_used: this._computeStageUsed(),
       hint_level: this._state.behaviorLog.viewed_hint_level
     };
+    // Mark as submitted (the JS guard in line 1 of this method prevents
+    // double submission). We do NOT set the [disabled] attribute here —
+    // doing so would trigger :host([disabled]) → opacity:0.6 + pointer-events:none,
+    // which makes the card look broken and unresponsive in the brief window
+    // before the consumer (injector.js / review-mode.js) handles the event.
+    // The consumer is responsible for closing or replacing the card.
     this._state.submitted = true;
-    this.setAttribute('disabled', '');
     this.dispatchEvent(new CustomEvent('card-submitted', { detail, bubbles: true, composed: true }));
   }
 

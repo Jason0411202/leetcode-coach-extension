@@ -112,6 +112,12 @@
           pattern
         });
         showToast('已加入複習資料庫 ✓');
+        // Close the panel and reset the card so a future toggle click
+        // re-opens with a fresh card (otherwise we'd reopen the
+        // already-submitted card with stale internal state).
+        contentEl.hidden = true;
+        contentEl.innerHTML = '';
+        cardEl = null;
       } catch (e) {
         console.error('[lcc] submit failed', e);
         showToast('儲存失敗,請開 dashboard 確認');
