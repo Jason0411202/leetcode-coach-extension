@@ -85,6 +85,30 @@ const TEMPLATE_STYLE = `
   .badge.diff-medium { background: rgba(210, 153, 34, 0.18); color: var(--lc-warning); }
   .badge.diff-hard { background: rgba(248, 81, 73, 0.15); color: var(--lc-danger); }
 
+  .pattern-toggle {
+    background: none;
+    border: 1px dashed var(--lc-border);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--lc-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .pattern-toggle:hover {
+    border-style: solid;
+    border-color: var(--lc-primary);
+    color: var(--lc-primary);
+  }
+  .pattern-badges[hidden] { display: none; }
+  .pattern-badges {
+    display: inline-flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
   .close-btn {
     background: none;
     border: none;
@@ -350,12 +374,22 @@ class ReviewCard extends HTMLElement {
     const closeLabel = ctx === 'review-mode' ? '✕ 結束' : '✕';
     const skipLabel = ctx === 'review-mode' ? '⏭ 跳過' : '⏭ 關閉';
 
+    const patterns = p.metadata.pattern || [];
+    const hasPatterns = patterns.length > 0;
+
     root.innerHTML = `
       <div class="header">
         <div>
           <span class="title">${escapeHtml(p.metadata.title_zh || p.metadata.title_en)}</span>
           <span class="meta">
-            ${(p.metadata.pattern || []).map(t => `<span class="badge">${escapeHtml(t)}</span>`).join('')}
+            ${hasPatterns ? `
+              <button class="pattern-toggle" data-pattern-toggle title="顯示題目用到的 pattern(可能劇透)">
+                <span data-pattern-toggle-label>🏷️ 顯示 pattern</span>
+              </button>
+              <span class="pattern-badges" data-pattern-badges hidden>
+                ${patterns.map(t => `<span class="badge">${escapeHtml(t)}</span>`).join('')}
+              </span>
+            ` : ''}
             <span class="badge diff-${p.metadata.difficulty}">${escapeHtml(p.metadata.difficulty)}</span>
           </span>
         </div>
@@ -366,6 +400,14 @@ class ReviewCard extends HTMLElement {
         <button class="stage-btn" data-stage="explanation">🔍 理解題目</button>
         <button class="stage-btn" data-stage="hints">💡 提示</button>
         <button class="stage-btn" data-stage="solution">✅ 解答</button>
+      </div>
+
+      <div class="hint-nav" data-hint-nav-bar hidden>
+        <span data-hint-counter>提示 1 / 1</span>
+        <span>
+          <button data-hint-nav="prev">← 上一個</button>
+          <button data-hint-nav="next">下一個 →</button>
+        </span>
       </div>
 
       <div class="content-area empty" data-content-area>
@@ -392,6 +434,7 @@ class ReviewCard extends HTMLElement {
 
       <div class="footer-meta">
         <a data-action="open-leetcode">↗ 在 LeetCode 開啟</a>
+        ${ctx === 'leetcode' ? '<a data-action="open-review-mode">📚 開啟複習模式</a>' : ''}
         <a data-action="report">⚠️ 內容有問題?</a>
       </div>
     `;
@@ -423,11 +466,40 @@ class ReviewCard extends HTMLElement {
     root.querySelectorAll('[data-score]').forEach(btn => {
       btn.addEventListener('click', () => this._selectScore(parseInt(btn.dataset.score, 10)));
     });
+    root.querySelectorAll('[data-hint-nav]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dir = btn.dataset.hintNav;
+        const total = (this._state.problem.hints_html || []).length;
+        if (total === 0) return;
+        const cur = this._state.currentHintIndex;
+        const next = dir === 'prev' ? cur - 1 : cur + 1;
+        this._goToHint(next);
+      });
+    });
+
+    const patternToggle = root.querySelector('[data-pattern-toggle]');
+    if (patternToggle) {
+      patternToggle.addEventListener('click', () => {
+        const badges = root.querySelector('[data-pattern-badges]');
+        const label = root.querySelector('[data-pattern-toggle-label]');
+        const willShow = badges.hasAttribute('hidden');
+        if (willShow) {
+          badges.removeAttribute('hidden');
+          label.textContent = '🏷️ 隱藏';
+        } else {
+          badges.setAttribute('hidden', '');
+          label.textContent = '🏷️ 顯示 pattern';
+        }
+      });
+    }
+
     root.querySelector('[data-action="submit"]').addEventListener('click', () => this._submit());
     root.querySelector('[data-action="skip"]').addEventListener('click', () => this._skip());
     root.querySelector('[data-action="close"]').addEventListener('click', () => this._close());
     const openLc = root.querySelector('[data-action="open-leetcode"]');
     if (openLc) openLc.addEventListener('click', () => this._openLeetCode());
+    const openReview = root.querySelector('[data-action="open-review-mode"]');
+    if (openReview) openReview.addEventListener('click', () => this._openReviewMode());
     const report = root.querySelector('[data-action="report"]');
     if (report) report.addEventListener('click', () => this._reportIssue('user-flag'));
   }
@@ -443,10 +515,8 @@ class ReviewCard extends HTMLElement {
   }
 
   _showExplanation() {
-    const html = this._state.problem.explanation_html;
-    this._setContent(this._sanitize(html));
+    this._renderContent(this._sanitize(this._state.problem.explanation_html), 'explanation');
     this._state.behaviorLog.viewed_explanation = true;
-    this._state.currentView = 'explanation';
     this._updateStageStates();
     this._updateAutoHint();
   }
@@ -455,110 +525,71 @@ class ReviewCard extends HTMLElement {
     const hints = this._state.problem.hints_html || [];
     if (hints.length === 0) return;
 
-    const goingToFirstHint = this._state.behaviorLog.viewed_hint_level === 0;
-    if (goingToFirstHint) {
-      const ok = window.confirm('確定不再想想嗎?提示會逐步逼近答案。');
-      if (!ok) return;
+    if (this._state.behaviorLog.viewed_hint_level === 0) {
+      if (!window.confirm('確定不再想想嗎?提示會逐步逼近答案。')) return;
     }
 
-    let nextIdx;
+    // Decide which hint index to show:
+    // - already in hint view → advance to next
+    // - coming from another view → resume at the next-unseen hint (or last viewed)
+    let idx;
     if (this._state.currentView === 'hint') {
-      nextIdx = Math.min(this._state.currentHintIndex + 1, hints.length - 1);
+      idx = Math.min(this._state.currentHintIndex + 1, hints.length - 1);
     } else {
-      nextIdx = Math.max(0, this._state.behaviorLog.viewed_hint_level - 1);
-      if (this._state.behaviorLog.viewed_hint_level < hints.length && goingToFirstHint) {
-        nextIdx = 0;
-      } else if (this._state.behaviorLog.viewed_hint_level > 0) {
-        nextIdx = Math.min(this._state.behaviorLog.viewed_hint_level, hints.length - 1);
-      }
+      idx = Math.min(this._state.behaviorLog.viewed_hint_level, hints.length - 1);
     }
+    this._goToHint(idx);
+  }
 
-    this._state.currentView = 'hint';
-    this._state.currentHintIndex = nextIdx;
-    this._renderHintView();
-    if (nextIdx + 1 > this._state.behaviorLog.viewed_hint_level) {
-      this._state.behaviorLog.viewed_hint_level = nextIdx + 1;
+  _goToHint(idx) {
+    const hints = this._state.problem.hints_html;
+    const total = hints.length;
+    idx = Math.max(0, Math.min(total - 1, idx));
+
+    this._state.currentHintIndex = idx;
+    this._renderContent(this._sanitize(hints[idx]), 'hint');
+
+    const navBar = this.shadowRoot.querySelector('[data-hint-nav-bar]');
+    navBar.hidden = false;
+    this.shadowRoot.querySelector('[data-hint-counter]').textContent = `提示 ${idx + 1} / ${total}`;
+    this.shadowRoot.querySelector('[data-hint-nav="prev"]').disabled = (idx === 0);
+    this.shadowRoot.querySelector('[data-hint-nav="next"]').disabled = (idx === total - 1);
+
+    if (idx + 1 > this._state.behaviorLog.viewed_hint_level) {
+      this._state.behaviorLog.viewed_hint_level = idx + 1;
     }
     this._updateStageStates();
     this._updateAutoHint();
-  }
-
-  _renderHintView() {
-    const hints = this._state.problem.hints_html;
-    const idx = this._state.currentHintIndex;
-    const total = hints.length;
-    const html = `
-      <div data-hint-content>${this._sanitize(hints[idx])}</div>
-    `;
-    const wrap = `
-      <div class="hint-nav">
-        <span>提示 ${idx + 1} / ${total}</span>
-        <span>
-          <button data-hint-nav="prev" ${idx === 0 ? 'disabled' : ''}>← 上一個</button>
-          <button data-hint-nav="next" ${idx === total - 1 ? 'disabled' : ''}>下一個 →</button>
-        </span>
-      </div>
-      <div class="content-area">${html}</div>
-    `;
-    const area = this.shadowRoot.querySelector('[data-content-area]');
-    if (area) {
-      area.outerHTML = wrap;
-      this.shadowRoot.querySelectorAll('[data-hint-nav]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (btn.dataset.hintNav === 'prev') {
-            this._state.currentHintIndex = Math.max(0, idx - 1);
-          } else {
-            this._state.currentHintIndex = Math.min(total - 1, idx + 1);
-            if (this._state.currentHintIndex + 1 > this._state.behaviorLog.viewed_hint_level) {
-              this._state.behaviorLog.viewed_hint_level = this._state.currentHintIndex + 1;
-            }
-          }
-          this._renderHintView();
-          this._updateAutoHint();
-        });
-      });
-    } else {
-      this._setContent(wrap, true);
-    }
   }
 
   _showSolution() {
     if (!this._state.behaviorLog.viewed_solution) {
-      const ok = window.confirm('確定要看解答嗎?');
-      if (!ok) return;
+      if (!window.confirm('確定要看解答嗎?')) return;
     }
-    this._setContent(this._sanitize(this._state.problem.solution_html));
+    this._renderContent(this._sanitize(this._state.problem.solution_html), 'solution');
     this._state.behaviorLog.viewed_solution = true;
-    this._state.currentView = 'solution';
     this._updateStageStates();
     this._updateAutoHint();
   }
 
-  _setContent(html, raw = false) {
-    let area = this.shadowRoot.querySelector('[data-content-area]');
-    if (!area) {
-      const root = this.shadowRoot.querySelector('.root');
-      const stages = root.querySelector('.stages');
-      const newArea = document.createElement('div');
-      newArea.className = 'content-area';
-      newArea.setAttribute('data-content-area', '');
-      stages.after(newArea);
-      area = newArea;
-    } else {
-      const oldNav = this.shadowRoot.querySelector('.hint-nav');
-      if (oldNav) oldNav.remove();
-    }
+  /**
+   * Update the stable content-area + show/hide hint-nav.
+   * Never replaces the [data-content-area] element — only its innerHTML.
+   */
+  _renderContent(html, view) {
+    const area = this.shadowRoot.querySelector('[data-content-area]');
+    const navBar = this.shadowRoot.querySelector('[data-hint-nav-bar]');
     area.classList.remove('empty');
-    if (raw) {
-      area.outerHTML = html;
-    } else {
-      area.innerHTML = html;
-    }
+    area.innerHTML = html;
+    navBar.hidden = (view !== 'hint');
+    this._state.currentView = view;
+    area.scrollTop = 0;
   }
 
   _updateStageStates() {
     const root = this.shadowRoot.querySelector('.root');
     const stages = root.querySelectorAll('[data-stage]');
+    const view = this._state.currentView;
     stages.forEach(btn => {
       btn.classList.remove('active');
       const s = btn.dataset.stage;
@@ -568,9 +599,11 @@ class ReviewCard extends HTMLElement {
         (s === 'hints' && log.viewed_hint_level > 0) ||
         (s === 'solution' && log.viewed_solution);
       btn.classList.toggle('viewed', viewed);
-      if (s === this._state.currentView || (s === 'hints' && this._state.currentView === 'hint')) {
-        btn.classList.add('active');
-      }
+      const active =
+        (s === 'explanation' && view === 'explanation') ||
+        (s === 'hints' && view === 'hint') ||
+        (s === 'solution' && view === 'solution');
+      if (active) btn.classList.add('active');
     });
   }
 
@@ -635,6 +668,15 @@ class ReviewCard extends HTMLElement {
     const url = this._state.problem?.metadata?.leetcode_url ||
                 `https://leetcode.com/problems/${slug}/`;
     window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  _openReviewMode() {
+    const slug = this.getAttribute('problem-slug');
+    this.dispatchEvent(new CustomEvent('open-review-mode', {
+      detail: { slug },
+      bubbles: true,
+      composed: true
+    }));
   }
 
   _reportIssue(reason) {

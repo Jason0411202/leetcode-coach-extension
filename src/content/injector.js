@@ -131,6 +131,11 @@
     panelEl.addEventListener('report-issue', (e) => {
       openReportIssue(e.detail.slug, e.detail.reason);
     });
+
+    panelEl.addEventListener('open-review-mode', () => {
+      const url = chrome.runtime.getURL('src/dashboard/review-mode.html');
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
   }
 
   async function fetchProblemMeta(slug) {

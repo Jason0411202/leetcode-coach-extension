@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LeetCode Coach",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "在 LeetCode 上學習與複習,搭配五階評分與間隔複習系統",
   "permissions": ["storage", "alarms"],
   "host_permissions": [

@@ -2,6 +2,15 @@
 
 All notable changes to LeetCode Coach Extension will be documented in this file.
 
+## [0.1.2] — 2026-04-26
+
+### Fixed
+- **Hints / Solution buttons unresponsive after first click**: the hint view rendering was replacing the `[data-content-area]` element with HTML that didn't preserve the `data-content-area` attribute, so the next stage click silently failed to find the area and the recovery path created duplicated DOM. Rewrote view rendering to keep the `[data-content-area]` element stable — only `innerHTML` swaps, hint nav bar is a sibling toggled via `hidden` attribute. Hints prev/next navigation now also works reliably.
+
+### Added
+- **「📚 開啟複習模式」link inside the review-card** when the card is shown on a leetcode.com problem page. One click opens the dashboard's review-mode in a new tab. Card emits `open-review-mode` event; `injector.js` handles it.
+- **Pattern tags hidden by default** in the card header. Replaced the always-visible pattern badges with a dashed `🏷️ 顯示 pattern` toggle button that reveals them on click. Difficulty badge stays visible (it's not a spoiler). Avoids accidentally giving away the algorithm pattern before the user has thought about the problem.
+
 ## [0.1.1] — 2026-04-26
 
 ### Fixed
